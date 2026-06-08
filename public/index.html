@@ -233,12 +233,23 @@ async function generateDailySoup() {
   let result;
   try {
     const raw = await callClaude(prompt, 500);
-    const clean = raw.replace(/```json|```/g,'').trim();
-    result = JSON.parse(clean);
+    // 清理 markdown 代码块、中文引号、首尾空白
+    const clean = raw
+      .replace(/```json|```/g, '')
+      .replace(/\u201c|\u201d|\u2018|\u2019/g, '"')
+      .trim();
+    // 用 regex 提取 face 和 truth，比直接 JSON.parse 更健壮
+    const faceMatch = clean.match(/"face"\s*:\s*"([\s\S]*?)"\s*,/);
+    const truthMatch = clean.match(/"truth"\s*:\s*"([\s\S]*?)"\s*[},]/);
+    if (faceMatch && truthMatch) {
+      result = { face: faceMatch[1], truth: truthMatch[1] };
+    } else {
+      result = JSON.parse(clean);
+    }
   } catch(e) {
     result = {
-      face: "一名女子每天给丈夫打电话，但从不说话，挂断后却很开心。",
-      truth: "她丈夫患有严重失忆症，住在护理院。每次她打来电话，护士会把电话递给丈夫，丈夫虽然不记得她是谁，但总会用温柔的语气说一句"没关系，你打错了也没关系"然后挂断。她只是想每天听一次他的声音。"
+      face: '一名女子每天给丈夫打电话，但从不说话，挂断后却很开心。',
+      truth: '她丈夫患有严重失忆症，住在护理院。每次她打来电话，丈夫虽然不记得她是谁，但总会温柔地说没关系然后挂断。她只是想每天听一次他的声音。'
     };
   }
 
@@ -353,12 +364,21 @@ async function newGame() {
 严格按JSON输出：{"face":"汤面","truth":"汤底"}`;
   try {
     const raw = await callClaude(prompt, 400);
-    const clean = raw.replace(/```json|```/g,'').trim();
-    soup = JSON.parse(clean);
+    const clean = raw
+      .replace(/```json|```/g, '')
+      .replace(/\u201c|\u201d|\u2018|\u2019/g, '"')
+      .trim();
+    const faceMatch = clean.match(/"face"\s*:\s*"([\s\S]*?)"\s*,/);
+    const truthMatch = clean.match(/"truth"\s*:\s*"([\s\S]*?)"\s*[},]/);
+    if (faceMatch && truthMatch) {
+      soup = { face: faceMatch[1], truth: truthMatch[1] };
+    } else {
+      soup = JSON.parse(clean);
+    }
   } catch(e) {
     soup = {
-      face:"一个人赢得了一场比赛，却没有庆祝，反而流下了眼泪。",
-      truth:"这是一场象棋比赛，他的对手是他的父亲。父亲患了阿尔茨海默症，已经认不出他了。但在比赛中，父亲却打出了他们年少时研究出的那个秘密开局。他赢了，却感到心碎——父亲忘记了一切，却没有忘记和他下棋的方式。"
+      face: '一个人赢得了一场比赛，却没有庆祝，反而流下了眼泪。',
+      truth: '这是一场象棋比赛，他的对手是他的父亲。父亲患了阿尔茨海默症，已经认不出他了。但在比赛中，父亲却打出了他们年少时研究出的那个秘密开局。他赢了，却感到心碎——父亲忘记了一切，却没有忘记和他下棋的方式。'
     };
   }
 
